@@ -12,6 +12,7 @@ pydantic-settings = "^2.6.0"
 sqlalchemy = "^2.0.36"
 alembic = "^1.14.0"
 psycopg = { version = "^3.2.0", extras = ["binary"] }
+httpx = "^0.27.0"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.8.0"
@@ -38,7 +39,11 @@ select = [
     "SIM",  # flake8-simplify
     "RUF",  # ruff-specific
 ]
-ignore = []
+ignore = [
+    "RUF001",  # ambiguous unicode chars (кириллица в строках)
+    "RUF002",  # ambiguous unicode chars в docstring
+    "RUF003",  # ambiguous unicode chars в comment
+]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["S101"]
