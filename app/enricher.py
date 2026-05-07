@@ -6,9 +6,9 @@ from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from app import db
 from app.api_client import JSONPlaceholderClient
 from app.config import settings
-from app.db import SessionLocal
 from app.models import Item
 
 logger = logging.getLogger(__name__)
@@ -51,7 +51,7 @@ def run_enrichment(batch_size: int | None = None) -> tuple[int, int]:
     failed = 0
     skip_ids: set[int] = set()
 
-    with JSONPlaceholderClient() as client, SessionLocal() as session:
+    with JSONPlaceholderClient() as client, db.SessionLocal() as session:
         while True:
             items = _fetch_pending_batch(session, batch_size, skip_ids)
             if not items:

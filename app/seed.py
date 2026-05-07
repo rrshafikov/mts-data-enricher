@@ -3,7 +3,7 @@ import logging
 
 from sqlalchemy import func, select
 
-from app.db import SessionLocal
+from app import db
 from app.logging_setup import setup_logging
 from app.models import Item
 
@@ -19,7 +19,7 @@ def seed(count: int = 10) -> int:
     Returns:
         Сколько строк реально добавлено (0, если seed пропущен).
     """
-    with SessionLocal() as session:
+    with db.SessionLocal() as session:
         existing = session.scalar(select(func.count()).select_from(Item)) or 0
         if existing:
             logger.info("Items table has %d rows, skipping seed", existing)
