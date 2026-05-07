@@ -28,9 +28,7 @@ class JSONPlaceholderClient:
             response.raise_for_status()
             return response.json()
         except httpx.HTTPStatusError as exc:
-            logger.error(
-                "API returned status %s for key=%s", exc.response.status_code, key
-            )
+            logger.error("API returned status %s for key=%s", exc.response.status_code, key)
         except httpx.RequestError as exc:
             logger.error("Request error for key=%s: %s", key, exc)
         except ValueError as exc:

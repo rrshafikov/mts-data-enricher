@@ -22,9 +22,7 @@ def _extract_additional_info(payload: dict[str, Any]) -> str:
     return json.dumps(payload, ensure_ascii=False)
 
 
-def _fetch_pending_batch(
-    session: Session, limit: int, skip_ids: set[int]
-) -> list[Item]:
+def _fetch_pending_batch(session: Session, limit: int, skip_ids: set[int]) -> list[Item]:
     stmt = select(Item).where(Item.status == "pending")
     if skip_ids:
         stmt = stmt.where(Item.id.notin_(skip_ids))
