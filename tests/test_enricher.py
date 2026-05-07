@@ -32,9 +32,7 @@ def test_run_enrichment_continues_after_api_error(session):
     session.add_all([Item(key="1", status="pending"), Item(key="2", status="pending")])
     session.commit()
 
-    respx.get("https://jsonplaceholder.typicode.com/posts/1").mock(
-        return_value=httpx.Response(500)
-    )
+    respx.get("https://jsonplaceholder.typicode.com/posts/1").mock(return_value=httpx.Response(500))
     respx.get("https://jsonplaceholder.typicode.com/posts/2").mock(
         return_value=httpx.Response(200, json={"body": "ok"})
     )
