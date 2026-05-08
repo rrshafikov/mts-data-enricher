@@ -1,3 +1,4 @@
+import hashlib
 import logging
 from typing import Any
 
@@ -7,9 +8,20 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
+# DummyJSON знает users с id 1..208. В реальном биллинге внешний API искал бы
+# абонента по номеру телефона напрямую — здесь же мы детерминированно сводим
+# наш российский телефон к валидному id демо-API, чтобы по одному и тому же
+# номеру всегда возвращалась одна и та же запись.
+_API_USER_RANGE = 208
 
-class JSONPlaceholderClient:
-    """HTTP-клиент для JSONPlaceholder.
+
+def _phone_to_user_id(phone: str) -> int:
+    digest = hashlib.md5(phone.encode("utf-8")).digest()
+    return (int.from_bytes(digest[:4], "big") % _API_USER_RANGE) + 1
+
+
+class SubscriberDirectoryClient:
+    """HTTP-клиент к внешнему справочнику абонентов.
 
     Возвращает None при любых сетевых/HTTP/JSON ошибках, чтобы вызывающий
     код мог продолжить обработку остальных записей (требование ТЗ).
@@ -21,8 +33,9 @@ class JSONPlaceholderClient:
             timeout=timeout if timeout is not None else settings.api_timeout,
         )
 
-    def fetch_post(self, key: str | int) -> dict[str, Any] | None:
-        path = f"/posts/{key}"
+    def fetch_subscriber(self, key: str | int) -> dict[str, Any] | None:
+        user_id = _phone_to_user_id(str(key))
+        path = f"/users/{user_id}"
         try:
             response = self._client.get(path)
             response.raise_for_status()
@@ -38,7 +51,7 @@ class JSONPlaceholderClient:
     def close(self) -> None:
         self._client.close()
 
-    def __enter__(self) -> "JSONPlaceholderClient":
+    def __enter__(self) -> "SubscriberDirectoryClient":
         return self
 
     def __exit__(self, *_exc: object) -> None:

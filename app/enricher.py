@@ -7,7 +7,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app import db
-from app.api_client import JSONPlaceholderClient
+from app.api_client import SubscriberDirectoryClient
 from app.config import settings
 from app.models import Item
 
@@ -15,11 +15,26 @@ logger = logging.getLogger(__name__)
 
 
 def _extract_additional_info(payload: dict[str, Any]) -> str:
-    """Достаём `body` из ответа JSONPlaceholder; если поля нет — сохраняем весь JSON."""
-    body = payload.get("body")
-    if isinstance(body, str):
-        return body
-    return json.dumps(payload, ensure_ascii=False)
+    """Сохраняем подмножество полей профиля абонента как JSON.
+
+    Внешний API отдаёт ~20 полей (включая фото, пароль, день рождения и т.п.).
+    Берём только то, что нужно для обогащения.
+    """
+    address = payload.get("address") or {}
+    cleaned = {
+        k: v
+        for k, v in {
+            "firstName": payload.get("firstName"),
+            "lastName": payload.get("lastName"),
+            "email": payload.get("email"),
+            "age": payload.get("age"),
+            "city": address.get("city"),
+        }.items()
+        if v is not None
+    }
+    if not cleaned:
+        return json.dumps(payload, ensure_ascii=False)
+    return json.dumps(cleaned, ensure_ascii=False)
 
 
 def _fetch_pending_batch(session: Session, limit: int, skip_ids: set[int]) -> list[Item]:
@@ -34,8 +49,8 @@ def run_enrichment(batch_size: int | None = None) -> tuple[int, int]:
     """Обработать все pending-записи.
 
     На каждую запись:
-      1. Делаем запрос к API.
-      2. Если ответ получен — сохраняем `body` в `additional_info`,
+      1. Делаем запрос к внешнему справочнику абонентов по `key`.
+      2. Если ответ получен — кладём подмножество полей в `additional_info`,
          меняем `status` на `processed`, коммитим.
       3. При любой ошибке (API/БД) логгируем и идём дальше — запись
          попадёт в skip_ids, чтобы не зациклиться в текущем запуске.
@@ -49,14 +64,14 @@ def run_enrichment(batch_size: int | None = None) -> tuple[int, int]:
     failed = 0
     skip_ids: set[int] = set()
 
-    with JSONPlaceholderClient() as client, db.SessionLocal() as session:
+    with SubscriberDirectoryClient() as client, db.SessionLocal() as session:
         while True:
             items = _fetch_pending_batch(session, batch_size, skip_ids)
             if not items:
                 break
 
             for item in items:
-                payload = client.fetch_post(item.key)
+                payload = client.fetch_subscriber(item.key)
                 if payload is None:
                     failed += 1
                     skip_ids.add(item.id)

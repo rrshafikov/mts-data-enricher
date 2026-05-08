@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     postgres_password: str = "enricher"
     postgres_db: str = "enricher"
 
-    api_base_url: str = "https://jsonplaceholder.typicode.com"
+    api_base_url: str = "https://dummyjson.com"
     api_timeout: float = 10.0
 
     batch_size: int = 50
