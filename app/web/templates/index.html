@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MTS Data Enricher</title>
+  <link rel="preconnect" href="https://rsms.me/">
+  <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Data Enricher</h1>
+      <p>Номера абонентов из БД обогащаются профильными данными из внешнего справочника.</p>
+    </header>
+
+    <section class="stats">
+      <div class="stat-card">
+        <div class="label">Всего</div>
+        <div class="value">{{ total }}</div>
+      </div>
+      <div class="stat-card accent-pending">
+        <div class="label">Pending</div>
+        <div class="value">{{ pending }}</div>
+      </div>
+      <div class="stat-card accent-processed">
+        <div class="label">Processed</div>
+        <div class="value">{{ processed }}</div>
+      </div>
+    </section>
+
+    {% if last_processed is not none %}
+    <div class="toast">
+      Обогащение завершено: processed={{ last_processed }}, failed={{ last_failed }}.
+    </div>
+    {% endif %}
+
+    <div class="actions">
+      <form method="post" action="/seed">
+        <input type="number" name="count" value="5" min="1" max="50" aria-label="Сколько добавить">
+        <button type="submit" class="secondary" data-busy="Добавляю…">Добавить pending</button>
+      </form>
+
+      <form method="post" action="/enrich">
+        <button type="submit" data-busy="Обогащаю…">Запустить обогащение</button>
+      </form>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 60px;">ID</th>
+            <th style="width: 170px;">Телефон</th>
+            <th style="width: 110px;">Статус</th>
+            <th>Профиль абонента</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+          <tr>
+            <td class="muted">{{ row.id }}</td>
+            <td><span class="phone">{{ row.key }}</span></td>
+            <td><span class="pill status-{{ row.status }}">{{ row.status }}</span></td>
+            <td>
+              {% if row.info %}
+              <div class="product">
+                <div class="title">
+                  {{ row.info.firstName or "" }} {{ row.info.lastName or "" }}
+                  {% if not row.info.firstName and not row.info.lastName %}—{% endif %}
+                </div>
+                <div class="meta">
+                  {% if row.info.email %}<span>{{ row.info.email }}</span>{% endif %}
+                  {% if row.info.city %}<span>· {{ row.info.city }}</span>{% endif %}
+                  {% if row.info.age is not none %}<span>· {{ row.info.age }} y.o.</span>{% endif %}
+                </div>
+              </div>
+              {% elif row.raw_info %}
+              <div class="muted">{{ row.raw_info }}</div>
+              {% else %}
+              <span class="muted">—</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="4" class="empty">
+              <strong>Записей нет</strong>
+              Нажми «Добавить pending», чтобы сгенерировать номера абонентов.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <footer>
+      Источник данных справочника: <code>https://dummyjson.com/users/{id}</code> (демо-API; id детерминированно выводится из телефона)
+    </footer>
+  </div>
+
+  <script src="/static/app.js" defer></script>
+</body>
+</html>
