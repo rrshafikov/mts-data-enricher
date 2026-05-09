@@ -1,4 +1,7 @@
 services:
+  # PostgreSQL. healthcheck нужен, чтобы `app` стартовал ТОЛЬКО когда БД
+  # реально готова принимать соединения (а не когда контейнер просто
+  # запустился). depends_on с condition: service_healthy ниже опирается на это.
   db:
     image: postgres:16-alpine
     environment:
@@ -32,6 +35,9 @@ services:
       BATCH_SIZE: ${BATCH_SIZE:-50}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
 
+  # UI (бонус сверх ТЗ). Стартует ПОСЛЕ того, как `app` успешно отработал
+  # одноразовое обогащение — это сериализует миграции и seed между двумя
+  # сервисами, чтобы не было гонок.
   web:
     build: .
     depends_on:
