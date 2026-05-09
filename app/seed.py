@@ -10,21 +10,9 @@ from app.models import Item
 
 logger = logging.getLogger(__name__)
 
-
-def _generate_phone() -> str:
-    """Генерирует валидный российский мобильный номер: +79XXXXXXXXX."""
-    operator = random.randint(900, 999)
-    rest = random.randint(0, 9_999_999)
-    return f"+7{operator}{rest:07d}"
-
-
-def _generate_unique_phones(count: int, exclude: set[str]) -> list[str]:
-    phones: set[str] = set()
-    while len(phones) < count:
-        candidate = _generate_phone()
-        if candidate not in exclude and candidate not in phones:
-            phones.add(candidate)
-    return list(phones)
+# Демо-API DummyJSON знает абонентов с id 1..208. Берём из этого диапазона.
+_API_KEY_MIN = 1
+_API_KEY_MAX = 208
 
 
 def _existing_keys() -> set[str]:
@@ -39,8 +27,19 @@ def _insert_pending(keys: list[str]) -> int:
     return len(keys)
 
 
+def _pick_unique_keys(count: int, exclude: set[str]) -> list[str]:
+    """Выбирает `count` уникальных id из валидного диапазона.
+
+    Возвращает максимум столько, сколько свободных id осталось — чтобы
+    повторные «добавь pending» не уходили в бесконечный цикл, если кто-то
+    задал count больше доступного диапазона.
+    """
+    pool = [str(i) for i in range(_API_KEY_MIN, _API_KEY_MAX + 1) if str(i) not in exclude]
+    return random.sample(pool, k=min(count, len(pool)))
+
+
 def seed_if_empty(count: int = 10) -> int:
-    """Идемпотентно засеивает таблицу `count` абонентами с уникальными телефонами.
+    """Идемпотентно засеивает таблицу `count` записями с id 1..count.
 
     Если в таблице уже что-то есть — ничего не делает. Используется
     в entrypoint контейнера: повторный `docker compose up` не плодит дубли
@@ -52,20 +51,23 @@ def seed_if_empty(count: int = 10) -> int:
         logger.info("Items table has %d rows, skipping seed", existing)
         return 0
 
-    phones = _generate_unique_phones(count, exclude=set())
-    added = _insert_pending(phones)
+    keys = [str(i) for i in range(1, count + 1)]
+    added = _insert_pending(keys)
     logger.info("Seeded %d pending subscribers", added)
     return added
 
 
 def add_pending(count: int = 5) -> int:
-    """Добавляет `count` новых pending-записей со свежими уникальными телефонами.
+    """Добавляет `count` новых pending-записей со случайными id из API-диапазона.
 
-    Используется UI-кнопкой «Добавить pending». Гарантирует, что новые номера
+    Используется UI-кнопкой «Добавить pending». Гарантирует, что новые id
     не пересекаются с уже существующими в таблице.
     """
-    phones = _generate_unique_phones(count, exclude=_existing_keys())
-    added = _insert_pending(phones)
+    keys = _pick_unique_keys(count, exclude=_existing_keys())
+    if not keys:
+        logger.info("No free api keys left in range %d..%d", _API_KEY_MIN, _API_KEY_MAX)
+        return 0
+    added = _insert_pending(keys)
     logger.info("Added %d pending subscribers", added)
     return added
 

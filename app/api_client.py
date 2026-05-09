@@ -1,4 +1,3 @@
-import hashlib
 import logging
 from typing import Any
 
@@ -7,17 +6,6 @@ import httpx
 from app.config import settings
 
 logger = logging.getLogger(__name__)
-
-# DummyJSON знает users с id 1..208. В реальном биллинге внешний API искал бы
-# абонента по номеру телефона напрямую — здесь же мы детерминированно сводим
-# наш российский телефон к валидному id демо-API, чтобы по одному и тому же
-# номеру всегда возвращалась одна и та же запись.
-_API_USER_RANGE = 208
-
-
-def _phone_to_user_id(phone: str) -> int:
-    digest = hashlib.md5(phone.encode("utf-8")).digest()
-    return (int.from_bytes(digest[:4], "big") % _API_USER_RANGE) + 1
 
 
 class SubscriberDirectoryClient:
@@ -34,11 +22,9 @@ class SubscriberDirectoryClient:
         )
 
     def fetch_subscriber(self, key: str | int) -> dict[str, Any] | None:
-        # Путь до эндпоинта берём из конфига и подставляем placeholders.
-        # Так проверяющий может натравить сервис на свой API без правки кода:
-        # достаточно поменять API_PATH в .env.
-        user_id = _phone_to_user_id(str(key))
-        path = settings.api_path.format(user_id=user_id, key=key)
+        # Путь до эндпоинта берётся из конфига, чтобы переключение на другой API
+        # сводилось к правке `.env` (API_PATH), без правки кода.
+        path = settings.api_path.format(key=key)
         try:
             response = self._client.get(path)
             response.raise_for_status()

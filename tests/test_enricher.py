@@ -4,7 +4,6 @@ import httpx
 import respx
 from sqlalchemy import select
 
-from app.api_client import _phone_to_user_id
 from app.config import settings
 from app.enricher import run_enrichment
 from app.models import Item
@@ -14,24 +13,23 @@ def _payload(first: str, last: str) -> dict:
     return {
         "firstName": first,
         "lastName": last,
+        "phone": "+1 555-000-0000",
         "email": f"{first.lower()}@example.com",
         "age": 30,
         "address": {"city": "Phoenix"},
-        "company": {"name": "Acme Inc"},
     }
 
 
 @respx.mock
 def test_run_enrichment_processes_pending_items(session):
-    p1, p2 = "+79161234567", "+79257654321"
-    session.add_all([Item(key=p1, status="pending"), Item(key=p2, status="pending")])
+    session.add_all([Item(key="1", status="pending"), Item(key="2", status="pending")])
     session.commit()
 
     base = settings.api_base_url
-    respx.get(f"{base}/users/{_phone_to_user_id(p1)}").mock(
+    respx.get(f"{base}/users/1").mock(
         return_value=httpx.Response(200, json=_payload("Emily", "Johnson"))
     )
-    respx.get(f"{base}/users/{_phone_to_user_id(p2)}").mock(
+    respx.get(f"{base}/users/2").mock(
         return_value=httpx.Response(200, json=_payload("Michael", "Williams"))
     )
 
@@ -44,18 +42,17 @@ def test_run_enrichment_processes_pending_items(session):
     info_first = json.loads(items[0].additional_info)
     assert info_first["firstName"] == "Emily"
     assert info_first["city"] == "Phoenix"
-    assert "company" not in info_first
+    assert info_first["phone"] == "+1 555-000-0000"
 
 
 @respx.mock
 def test_run_enrichment_continues_after_api_error(session):
-    p1, p2 = "+79161234567", "+79257654321"
-    session.add_all([Item(key=p1, status="pending"), Item(key=p2, status="pending")])
+    session.add_all([Item(key="1", status="pending"), Item(key="2", status="pending")])
     session.commit()
 
     base = settings.api_base_url
-    respx.get(f"{base}/users/{_phone_to_user_id(p1)}").mock(return_value=httpx.Response(500))
-    respx.get(f"{base}/users/{_phone_to_user_id(p2)}").mock(
+    respx.get(f"{base}/users/1").mock(return_value=httpx.Response(500))
+    respx.get(f"{base}/users/2").mock(
         return_value=httpx.Response(200, json=_payload("Michael", "Williams"))
     )
 

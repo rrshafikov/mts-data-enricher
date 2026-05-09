@@ -26,6 +26,7 @@ def _extract_additional_info(payload: dict[str, Any]) -> str:
         for k, v in {
             "firstName": payload.get("firstName"),
             "lastName": payload.get("lastName"),
+            "phone": payload.get("phone"),
             "email": payload.get("email"),
             "age": payload.get("age"),
             "city": address.get("city"),
