@@ -38,6 +38,12 @@ def _extract_additional_info(payload: dict[str, Any]) -> str:
 
 
 def _fetch_pending_batch(session: Session, limit: int, skip_ids: set[int]) -> list[Item]:
+    """Тянем очередной батч pending-записей.
+
+    skip_ids исключает строки, которые уже не получилось обработать в этом
+    прогоне (API/БД ошибки) — иначе цикл `while pending exists` уходил бы
+    в бесконечный повтор тех же провальных записей.
+    """
     stmt = select(Item).where(Item.status == "pending")
     if skip_ids:
         stmt = stmt.where(Item.id.notin_(skip_ids))
@@ -80,6 +86,9 @@ def run_enrichment(batch_size: int | None = None) -> tuple[int, int]:
                 try:
                     item.additional_info = _extract_additional_info(payload)
                     item.status = "processed"
+                    # Коммит после КАЖДОЙ успешной записи. Дороже, чем один
+                    # commit на батч, зато при сбое посередине уже обработанные
+                    # строки гарантированно сохранены — ничего не откатывается.
                     session.commit()
                 except SQLAlchemyError:
                     session.rollback()

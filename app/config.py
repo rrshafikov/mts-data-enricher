@@ -1,24 +1,32 @@
-from pydantic_settings import BaseSettings, SettingsConfigDict
+import os
+
+from dotenv import load_dotenv
+
+# Подгружаем .env в os.environ при импорте модуля. Если файла нет, ничего
+# не происходит — переменные ожидаются из окружения (как в Docker).
+load_dotenv()
 
 
-class Settings(BaseSettings):
-    model_config = SettingsConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8",
-        extra="ignore",
-    )
+class Settings:
+    """Конфигурация приложения, считанная из переменных окружения."""
 
-    postgres_host: str = "localhost"
-    postgres_port: int = 5432
-    postgres_user: str = "enricher"
-    postgres_password: str = "enricher"
-    postgres_db: str = "enricher"
+    def __init__(self) -> None:
+        self.postgres_host: str = os.getenv("POSTGRES_HOST", "localhost")
+        self.postgres_port: int = int(os.getenv("POSTGRES_PORT", "5432"))
+        self.postgres_user: str = os.getenv("POSTGRES_USER", "enricher")
+        self.postgres_password: str = os.getenv("POSTGRES_PASSWORD", "enricher")
+        self.postgres_db: str = os.getenv("POSTGRES_DB", "enricher")
 
-    api_base_url: str = "https://dummyjson.com"
-    api_timeout: float = 10.0
+        self.api_base_url: str = os.getenv("API_BASE_URL", "https://dummyjson.com")
+        # Шаблон пути к эндпоинту обогащения. Доступные плейсхолдеры:
+        #   {user_id} — детерминированно полученный из `key` числовой id
+        #   {key}     — исходное значение из БД (наш номер телефона)
+        # Меняется без правки кода — например: /api/v1/customers/{key}
+        self.api_path: str = os.getenv("API_PATH", "/users/{user_id}")
+        self.api_timeout: float = float(os.getenv("API_TIMEOUT", "10.0"))
 
-    batch_size: int = 50
-    log_level: str = "INFO"
+        self.batch_size: int = int(os.getenv("BATCH_SIZE", "50"))
+        self.log_level: str = os.getenv("LOG_LEVEL", "INFO")
 
     @property
     def database_url(self) -> str:
