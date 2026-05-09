@@ -228,12 +228,6 @@ td.muted {
   color: var(--text-muted);
 }
 
-td .phone {
-  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  font-size: 0.8125rem;
-  color: var(--text);
-}
-
 .pill {
   display: inline-flex;
   align-items: center;

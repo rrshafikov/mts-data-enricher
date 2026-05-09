@@ -12,7 +12,7 @@
   <div class="container">
     <header>
       <h1>Data Enricher</h1>
-      <p>Номера абонентов из БД обогащаются профильными данными из внешнего справочника.</p>
+      <p>ID абонентов из БД обогащаются ФИО, телефоном, email и городом из внешнего справочника.</p>
     </header>
 
     <section class="stats">
@@ -51,8 +51,8 @@
       <table>
         <thead>
           <tr>
-            <th style="width: 60px;">ID</th>
-            <th style="width: 170px;">Телефон</th>
+            <th style="width: 60px;">#</th>
+            <th style="width: 110px;">ID абонента</th>
             <th style="width: 110px;">Статус</th>
             <th>Профиль абонента</th>
           </tr>
@@ -61,7 +61,7 @@
           {% for row in rows %}
           <tr>
             <td class="muted">{{ row.id }}</td>
-            <td><span class="phone">{{ row.key }}</span></td>
+            <td class="muted">{{ row.key }}</td>
             <td><span class="pill status-{{ row.status }}">{{ row.status }}</span></td>
             <td>
               {% if row.info %}
@@ -71,7 +71,8 @@
                   {% if not row.info.firstName and not row.info.lastName %}—{% endif %}
                 </div>
                 <div class="meta">
-                  {% if row.info.email %}<span>{{ row.info.email }}</span>{% endif %}
+                  {% if row.info.phone %}<span>{{ row.info.phone }}</span>{% endif %}
+                  {% if row.info.email %}<span>· {{ row.info.email }}</span>{% endif %}
                   {% if row.info.city %}<span>· {{ row.info.city }}</span>{% endif %}
                   {% if row.info.age is not none %}<span>· {{ row.info.age }} y.o.</span>{% endif %}
                 </div>
@@ -87,7 +88,7 @@
           <tr>
             <td colspan="4" class="empty">
               <strong>Записей нет</strong>
-              Нажми «Добавить pending», чтобы сгенерировать номера абонентов.
+              Нажми «Добавить pending», чтобы добавить ID абонентов.
             </td>
           </tr>
           {% endfor %}
@@ -96,7 +97,7 @@
     </div>
 
     <footer>
-      Источник данных справочника: <code>https://dummyjson.com/users/{id}</code> (демо-API; id детерминированно выводится из телефона)
+      Источник данных справочника: <code>https://dummyjson.com/users/{key}</code> (публичное демо-API)
     </footer>
   </div>
 

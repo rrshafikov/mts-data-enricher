@@ -18,11 +18,10 @@ class Settings:
         self.postgres_db: str = os.getenv("POSTGRES_DB", "enricher")
 
         self.api_base_url: str = os.getenv("API_BASE_URL", "https://dummyjson.com")
-        # Шаблон пути к эндпоинту обогащения. Доступные плейсхолдеры:
-        #   {user_id} — детерминированно полученный из `key` числовой id
-        #   {key}     — исходное значение из БД (наш номер телефона)
+        # Шаблон пути к эндпоинту обогащения. Плейсхолдер {key} — значение
+        # из колонки items.key (в нашем демо это числовой id абонента).
         # Меняется без правки кода — например: /api/v1/customers/{key}
-        self.api_path: str = os.getenv("API_PATH", "/users/{user_id}")
+        self.api_path: str = os.getenv("API_PATH", "/users/{key}")
         self.api_timeout: float = float(os.getenv("API_TIMEOUT", "10.0"))
 
         self.batch_size: int = int(os.getenv("BATCH_SIZE", "50"))
