@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, Form, Request
+from fastapi import FastAPI, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -66,8 +66,18 @@ def index(request: Request, processed: int | None = None, failed: int | None = N
     )
 
 
+_MAX_SEED_PER_REQUEST = 100
+
+
 @app.post("/seed")
 def seed_endpoint(count: int = Form(5)):
+    # Серверная валидация: HTML-input ограничен max=50, но это легко обойти
+    # ручным curl. Бьём по верхней границе явно, чтобы не положить БД.
+    if not 1 <= count <= _MAX_SEED_PER_REQUEST:
+        raise HTTPException(
+            status_code=400,
+            detail=f"count must be between 1 and {_MAX_SEED_PER_REQUEST}",
+        )
     add_pending(count)
     return RedirectResponse("/", status_code=303)
 

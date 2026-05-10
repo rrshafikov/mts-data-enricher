@@ -16,8 +16,9 @@ services:
       retries: 10
     volumes:
       - pg_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+    # Порт намеренно НЕ публикуется наружу: БД доступна другим сервисам compose
+    # по сети `default`, и это всё, что нужно. Для ручной отладки используй
+    # `docker compose exec db psql -U enricher -d enricher`.
 
   app:
     build: .
