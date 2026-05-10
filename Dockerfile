@@ -34,11 +34,19 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PATH="/app/.venv/bin:$PATH"
 
+# Создаём непривилегированного пользователя — контейнер не должен крутиться
+# под root. uid/gid 1000 — стандартный «первый юзер», часто совпадает с
+# хост-пользователем, что удобно для bind-mount'ов в dev-режиме.
+RUN groupadd --system --gid 1000 app \
+ && useradd --system --uid 1000 --gid app --create-home --home-dir /home/app app
+
 WORKDIR /app
 
-COPY --from=builder /app /app
-COPY entrypoint.sh /entrypoint.sh
+COPY --from=builder --chown=app:app /app /app
+COPY --chown=app:app entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
+
+USER app
 
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["python", "-m", "app"]
