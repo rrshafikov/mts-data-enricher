@@ -2,21 +2,21 @@
 
 Сервис на Python, который читает записи из PostgreSQL, обогащает их данными из публичного REST API и сохраняет обратно.
 
-Тестовое задание МТС — стажёр Python-разработчик.
+Тестовое задание МТС - стажёр Python-разработчик.
 
 ## Что делает
 
 1. Берёт из таблицы `items` строки со `status='pending'`.
 2. Для каждой строки делает запрос к внешнему API по значению из `key`.
 3. Складывает подмножество полей ответа (ФИО, телефон, email, возраст, город) в `additional_info` как JSON и ставит `status='processed'`.
-4. Если API недоступен или вернул ошибку — логгирует и идёт дальше, не валит обработку остальных записей.
+4. Если API недоступен или вернул ошибку, сервис логгирует и идёт дальше, не валит обработку остальных записей.
 5. На повторный запуск без `pending`-записей просто завершается с `processed=0 failed=0`.
 
-В качестве внешнего API используется [DummyJSON](https://dummyjson.com/) (`/users/{id}`) — публичный аналог JSONPlaceholder.
+В качестве внешнего API используется [DummyJSON](https://dummyjson.com/) (`/users/{id}`) - публичный аналог JSONPlaceholder.
 
 ## Стек
 
-| Слой | Чем взяли |
+| Слой | Реализация |
 |---|---|
 | Язык | Python 3.14 |
 | Менеджер зависимостей | Poetry |
@@ -61,10 +61,10 @@ poetry install
 
 cp .env.example .env
 
-# Тесты (поднимают эфемерный контейнер PG через testcontainers — нужен Docker)
+# Тесты
 poetry run pytest
 
-# Линт
+# Линтеры
 poetry run ruff check .
 poetry run ruff format --check .
 
@@ -76,7 +76,7 @@ poetry run python -m app
 
 ## Конфигурация
 
-Все параметры читаются из `.env` (а внутри Docker — из `environment` в `docker-compose.yml`). См. [.env.example](.env.example).
+Все параметры читаются из `.env` (а внутри Docker - из `environment` в `docker-compose.yml`). См. [.env.example](.env.example).
 
 | Переменная | По умолчанию | Назначение |
 |---|---|---|
@@ -95,8 +95,8 @@ poetry run python -m app
 
 **Через `.env` (без правки кода):**
 - Поменять `API_BASE_URL` и `API_PATH` на свой эндпоинт. Если ваш API ожидает не `id`, а, скажем, артикул, — задайте `API_PATH=/api/v1/items/{key}`.
-- Подключиться к своей БД — поменять `POSTGRES_*`.
-- Не использовать наш seed — заранее наполнить таблицу `items` своим SQL'ем; наш seed увидит существующие строки и пропустится (см. [app/seed.py](app/seed.py)).
+- Подключиться к своей БД - поменять `POSTGRES_*`.
+- Не использовать наш seed - заранее наполнить таблицу `items` своим SQL'ем; наш seed увидит существующие строки и пропустится (см. [app/seed.py](app/seed.py)).
 
 **Что специфично для конкретной интеграции (одна строка кода):**
 - Какие поля выбираем из ответа API → [app/enricher.py](app/enricher.py): функция `_extract_additional_info`. Сейчас собирает `firstName, lastName, phone, email, age, city`.
@@ -120,7 +120,7 @@ poetry run python -m app
 Несколько решений, которые стоит проговорить:
 
 - **Per-item commit** в [app/enricher.py](app/enricher.py): коммит после каждой успешной записи. Дороже, чем один commit на батч, зато при сбое посередине уже обработанные строки сохранены.
-- **`skip_ids`** там же: записи, которые в текущем запуске не получилось обработать, исключаются из последующих SELECT'ов того же запуска — иначе цикл «пока есть pending» вечно повторял бы провальные.
+- **`skip_ids`** там же: записи, которые в текущем запуске не получилось обработать, исключаются из последующих SELECT'ов того же запуска, иначе цикл вечно повторял бы провальные.
 - **Healthcheck в compose**: `app` ждёт `db: service_healthy`, `web` ждёт `app: service_completed_successfully`. Это сериализует миграции и seed между сервисами.
 - **Multi-stage Dockerfile**: Poetry и dev-зависимости остаются в build-стадии, в runtime-образ попадает только `.venv` с прод-зависимостями.
 
@@ -155,6 +155,6 @@ mts-data-enricher/
 
 [.github/workflows/ci.yml](.github/workflows/ci.yml) запускается на push в `main` и на PR в `main`:
 
-- **lint** — `ruff check` + `ruff format --check`
-- **test** — `pytest` (поднимает PG через testcontainers; ubuntu-runners уже имеют Docker)
-- **docker** — сборка образа из Dockerfile с GHA-кешем слоёв
+- **lint** - `ruff check` + `ruff format --check`
+- **test** - `pytest` (поднимает PG через testcontainers; ubuntu-runners уже имеют Docker)
+- **docker** - сборка образа из Dockerfile с GHA-кешем слоёв
